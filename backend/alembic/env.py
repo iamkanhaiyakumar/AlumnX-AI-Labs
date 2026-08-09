@@ -24,6 +24,11 @@ if config.config_file_name is not None:
 
 # Set database URL dynamically from app settings, unquoting if necessary
 db_url = make_url(settings.DATABASE_URL)
+
+# Force use of modern psycopg v3 driver to prevent psycopg2 ModuleNotFoundError on standard URLs
+if db_url.drivername in ("postgresql", "postgres"):
+    db_url = db_url.set(drivername="postgresql+psycopg")
+
 if db_url.database and ("%" in db_url.database or "%20" in db_url.database):
     db_url = db_url.set(database=unquote(db_url.database))
 config.set_main_option("sqlalchemy.url", db_url.render_as_string(hide_password=False))
