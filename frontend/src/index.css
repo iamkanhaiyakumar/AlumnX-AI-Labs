@@ -86,7 +86,7 @@ body {
 
 .header h1 {
   font-family: var(--font-sans);
-  font-size: 1.8rem;
+  font-size: clamp(1.2rem, 4vw, 1.8rem);
   font-weight: 700;
   background: var(--accent-gradient);
   -webkit-background-clip: text;
@@ -457,18 +457,24 @@ body {
   to { transform: rotate(360deg); }
 }
 
-/* Mobile Media Queries & Grid Adaptation */
+/* =============================================
+   MOBILE RESPONSIVE OVERRIDES
+   Breakpoints: 768px (tablet), 480px (phone)
+   ============================================= */
+
 @media (max-width: 768px) {
+  /* Overall container padding */
   .app-container {
     padding: 1rem;
     gap: 1.25rem;
   }
 
+  /* Header: stack vertically on small screens */
   .header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 1rem;
-    padding: 1.2rem;
+    gap: 0.85rem;
+    padding: 1rem 1.1rem;
   }
 
   .header-status {
@@ -477,17 +483,61 @@ body {
     gap: 0.5rem;
   }
 
-  .candidate-badge, .status-indicator {
+  .candidate-badge {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.65rem;
+    word-break: break-all;
+  }
+
+  /* Ingest card */
+  .ingest-card {
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  /* Textarea shorter on mobile */
+  .json-textarea {
+    height: 130px;
     font-size: 0.8rem;
-    padding: 0.35rem 0.7rem;
+  }
+
+  /* Buttons: stack vertically */
+  .btn-group {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .btn {
     width: 100%;
-    text-align: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    padding: 0.7rem 1rem;
+  }
+
+  /* Count + generate button row: wrap */
+  .btn-group > div {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .btn-group > div > input[type="number"] {
+    width: 70px !important;
+    flex-shrink: 0;
+  }
+
+  .btn-group > div > button {
+    flex: 1;
+    min-width: 0;
     justify-content: center;
   }
 
+  /* Stats grid: 2 columns on tablet */
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
+    gap: 0.85rem;
   }
 
   .stat-item {
@@ -495,66 +545,99 @@ body {
   }
 
   .stat-value {
-    font-size: 1.8rem;
+    font-size: 1.6rem;
   }
 
-  .btn-group {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 1rem;
+  /* Table: horizontal scroll, smaller text */
+  .table-card {
+    padding: 1rem;
   }
 
-  .btn {
-    width: 100%;
-    justify-content: center;
+  .table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
-  .btn-group > div {
-    display: flex;
-    flex-wrap: wrap;
-    width: 100%;
-    gap: 0.5rem;
+  .data-table {
+    min-width: 560px;
   }
 
-  .btn-group > div > input {
-    flex: 1;
-    min-width: 60px;
+  .data-table th,
+  .data-table td {
+    padding: 0.6rem 0.75rem;
+    font-size: 0.82rem;
   }
 
-  .btn-group > div > button {
-    flex: 2;
+  /* Dashboard grid: single column */
+  .dashboard-grid {
+    grid-template-columns: 1fr;
   }
 
-  .json-textarea {
-    height: 140px;
+  /* Routed tasks table: reduce fixed height */
+  .dashboard-grid > section:first-child {
+    height: auto !important;
+    max-height: 420px;
   }
 
+  /* Chat panel */
   .chat-card {
-    height: 500px;
+    height: 460px;
+    padding: 1rem;
   }
 
   .chat-message {
-    max-width: 95%;
+    max-width: 92%;
+    font-size: 0.85rem;
+    padding: 0.7rem 0.9rem;
   }
 
-  .data-table th, .data-table td {
-    padding: 0.6rem 0.8rem;
+  .chat-input {
     font-size: 0.85rem;
+    padding: 0.65rem 0.85rem;
   }
 }
 
+/* Phone screens (480px and below) */
 @media (max-width: 480px) {
+  .app-container {
+    padding: 0.75rem;
+    gap: 1rem;
+  }
+
+  .header {
+    padding: 0.9rem 1rem;
+  }
+
+  /* Stats: single column on phones */
   .stats-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem;
   }
-  
+
+  .stat-value {
+    font-size: 1.4rem;
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
+  }
+
+  /* Count input + generate button: full-width column */
   .btn-group > div {
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
   }
-  
-  .btn-group > div > input,
+
   .btn-group > div > button {
     width: 100%;
+  }
+
+  .chat-card {
+    height: 400px;
+  }
+
+  .card-title {
+    font-size: 1rem;
   }
 }
 
