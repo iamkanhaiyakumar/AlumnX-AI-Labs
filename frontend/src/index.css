@@ -456,3 +456,105 @@ body {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* Mobile Media Queries & Grid Adaptation */
+@media (max-width: 768px) {
+  .app-container {
+    padding: 1rem;
+    gap: 1.25rem;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.2rem;
+  }
+
+  .header-status {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .candidate-badge, .status-indicator {
+    font-size: 0.8rem;
+    padding: 0.35rem 0.7rem;
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  .stat-item {
+    padding: 1rem;
+  }
+
+  .stat-value {
+    font-size: 1.8rem;
+  }
+
+  .btn-group {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .btn-group > div {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  .btn-group > div > input {
+    flex: 1;
+    min-width: 60px;
+  }
+
+  .btn-group > div > button {
+    flex: 2;
+  }
+
+  .json-textarea {
+    height: 140px;
+  }
+
+  .chat-card {
+    height: 500px;
+  }
+
+  .chat-message {
+    max-width: 95%;
+  }
+
+  .data-table th, .data-table td {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .btn-group > div {
+    flex-direction: column;
+  }
+  
+  .btn-group > div > input,
+  .btn-group > div > button {
+    width: 100%;
+  }
+}
+
