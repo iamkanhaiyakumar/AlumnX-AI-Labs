@@ -432,6 +432,7 @@ export default function App() {
               <thead style={{ position: "sticky", top: 0, zIndex: 1 }}>
                 <tr>
                   <th>Task Title</th>
+                  <th>From</th>
                   <th>Assignee</th>
                   <th>Category</th>
                   <th>Priority</th>
@@ -443,7 +444,7 @@ export default function App() {
               <tbody>
                 {tasks.length === 0 ? (
                   <tr>
-                    <td colSpan="7" style={{ textAlign: "center", padding: "3rem", color: "var(--text-secondary)" }}>
+                    <td colSpan="8" style={{ textAlign: "center", padding: "3rem", color: "var(--text-secondary)" }}>
                       No tasks processed yet. Paste an email batch above to begin.
                     </td>
                   </tr>
@@ -457,8 +458,14 @@ export default function App() {
                         </div>
                       </td>
                       <td>
+                        <div style={{ fontWeight: 500 }}>{item.email?.from_name || "—"}</div>
+                        <div style={{ color: "var(--text-secondary)", fontSize: "0.75rem" }}>
+                          {item.email?.from_email || "—"}
+                        </div>
+                      </td>
+                      <td>
                         <span className="badge" style={{ background: "rgba(168, 85, 247, 0.15)", color: "#d8b4fe" }}>
-                          {usersLookup[item.task?.assignee_id] || item.task?.assignee_id || "Triage"}
+                           {usersLookup[item.task?.assignee_id] || item.task?.assignee_id || (item.decision === "skipped" ? "—" : "Triage")}
                         </span>
                       </td>
                       <td>{item.task?.category}</td>
