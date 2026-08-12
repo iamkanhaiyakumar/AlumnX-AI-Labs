@@ -16,6 +16,7 @@ export default function App() {
 
   // Database Ground-truth State
   const [tasks, setTasks] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [stats, setStats] = useState({
     processed: 0,
     created: 0,
@@ -243,6 +244,28 @@ export default function App() {
     }
   };
 
+  const filteredTasks = tasks.filter(item => {
+    if (!searchTerm.trim()) return true;
+    const term = searchTerm.toLowerCase();
+    const title = (item.task?.title || "").toLowerCase();
+    const company = (item.task?.company_name || "").toLowerCase();
+    const assigneeId = (item.task?.assignee_id || "").toLowerCase();
+    const assigneeName = (usersLookup[item.task?.assignee_id] || "").toLowerCase();
+    const category = (item.task?.category || "").toLowerCase();
+    const priority = (item.task?.priority || "").toLowerCase();
+    const fromName = (item.email?.from_name || "").toLowerCase();
+    const fromEmail = (item.email?.from_email || "").toLowerCase();
+    
+    return title.includes(term) || 
+           company.includes(term) || 
+           assigneeId.includes(term) || 
+           assigneeName.includes(term) || 
+           category.includes(term) || 
+           priority.includes(term) || 
+           fromName.includes(term) || 
+           fromEmail.includes(term);
+  });
+
   return (
     <div className="app-container">
       {/* Header */}
@@ -437,7 +460,25 @@ export default function App() {
       <div className="dashboard-grid">
         {/* Routed Tasks Table */}
         <section className="table-card" style={{ height: "600px", display: "flex", flexDirection: "column" }}>
-          <h2 className="card-title">📋 Routed Tasks ({tasks.length})</h2>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem", marginBottom: "0.5rem" }}>
+            <h2 className="card-title" style={{ margin: 0 }}>📋 Routed Tasks ({filteredTasks.length})</h2>
+            <input 
+              type="text" 
+              placeholder="Search tasks..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{
+                width: "220px",
+                background: "rgba(8, 7, 16, 0.6)",
+                border: "1px solid var(--border-muted)",
+                borderRadius: "8px",
+                padding: "0.4rem 0.8rem",
+                color: "white",
+                outline: "none",
+                fontSize: "0.85rem"
+              }}
+            />
+          </div>
           <div className="table-wrapper" style={{ flex: 1, overflowY: "auto" }}>
             <table className="data-table">
               <thead style={{ position: "sticky", top: 0, zIndex: 1 }}>
@@ -453,14 +494,14 @@ export default function App() {
                 </tr>
               </thead>
               <tbody>
-                {tasks.length === 0 ? (
+                 {filteredTasks.length === 0 ? (
                   <tr>
                     <td colSpan="8" style={{ textAlign: "center", padding: "3rem", color: "var(--text-secondary)" }}>
-                      No tasks processed yet. Paste an email batch above to begin.
+                      {tasks.length === 0 ? "No tasks processed yet. Paste an email batch above to begin." : "No tasks match your search criteria."}
                     </td>
                   </tr>
                 ) : (
-                  tasks.map((item) => (
+                  filteredTasks.map((item) => (
                     <tr key={item.id}>
                       <td>
                         <div style={{ fontWeight: 600 }}>{item.task?.title || "—"}</div>
