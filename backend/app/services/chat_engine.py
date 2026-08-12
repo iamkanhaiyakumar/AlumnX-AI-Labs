@@ -14,7 +14,7 @@ class StructuredChatQuery(BaseModel):
     intent: str = Field(..., description="One of: 'count', 'list', 'aggregate', 'rate', 'comparison', 'thread_history', 'unsupported_action'")
     source: str = Field(..., description="One of: 'tasks', 'processing_records', 'runs', 'task_updates'")
     scope: str = Field(..., description="One of: 'current_batch', 'all'")
-    filters: Dict[str, Any] = Field(default_factory=dict, description="Key-value filters (e.g. {'category': 'marketing', 'priority': 'high', 'assignee_id': 'u_meera', 'is_spurious': true})")
+    filters: Dict[str, Any] = Field(default_factory=dict, description="Key-value filters. Supported keys: 'category' (marketing, finance etc), 'priority' (high, medium, low), 'assignee_id' (u_aarti, u_rohit etc), 'is_spurious' (true/false), 'decision' (created, skipped etc), and 'q' (generic text search for names, subjects, companies, like 'kanhaiya' or 'meridian').")
     aggregate_field: Optional[str] = Field(None, description="Field to aggregate (e.g. 'deal_value_inr' for sum).")
     target_thread_id: Optional[str] = Field(None, description="Thread ID if querying a specific thread.")
     is_out_of_scope: bool = Field(False, description="True if user requests an action like sending an email or modifying systems.")
