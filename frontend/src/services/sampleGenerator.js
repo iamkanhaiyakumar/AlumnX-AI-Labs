@@ -177,10 +177,6 @@ export function generateSampleEmails(count = 250) {
 
   const emails = [...brief_examples];
 
-  if (count <= 12) {
-    return emails.slice(0, count);
-  }
-
   // Synthetically generate the remaining emails to reach count total
   const companies = ["Infotech Solutions", "Nexus Corp", "Skyline Ventures", "Global Trades", "Apex Builders", "Green Energy Pvt Ltd", "Pro Consulting", "Alpha FinTech"];
   const names = ["Rajesh Gupta", "Meenakshi Sen", "Vijay Kumar", "Pooja Hegde", "Sanjay Dutt", "Arjun Kapoor", "Karan Johar", "Preity Zinta"];
@@ -255,5 +251,10 @@ export function generateSampleEmails(count = 250) {
     emails.push(email);
   }
 
-  return emails;
+  const run_suffix = Math.random().toString(36).substring(2, 6);
+  return emails.slice(0, count).map(email => ({
+    ...email,
+    email_id: `${email.email_id}_${run_suffix}`,
+    thread_id: `${email.thread_id}_${run_suffix}`
+  }));
 }
