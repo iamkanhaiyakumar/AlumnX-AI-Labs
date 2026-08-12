@@ -159,6 +159,7 @@ Ground Rules:
 - PROCESSING STATS: (e.g. "how many emails skipped/processed?", "how many marketing emails received?") → source: 'processing_records' (skips and auto-replies don't create tasks, so stats must query processing_records).
 - RUN DETAILS: (e.g. "what was the duplicates count in the last batch?") → source: 'runs'
 - THREAD HISTORY: (e.g. "did any thread get updated more than once?") → source: 'task_updates'
+- KEYWORD SEARCH: If the user is asking about a specific person's name (e.g., 'rambabu kkr', 'kanhaiya'), email address, company name, or subject keyword that does not match standard fields, extract it into the 'q' filter (e.g., {"q": "rambabu kkr"}).
 - SCOPE:
   - If the question mentions "this batch", "current batch", "latest run", "last run" → scope: 'current_batch'
   - Otherwise, default to scope: 'all'
