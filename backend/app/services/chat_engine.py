@@ -251,8 +251,10 @@ def execute_structured_query(candidate_id: str, s_query: StructuredChatQuery, db
             result_data["count"] = count_val
         elif s_query.intent == "list":
             tasks = query.all()
-            result_data["tasks"] = [
-                {
+            result_data["tasks"] = []
+            for t in tasks:
+                email_obj = db.query(Email).filter(Email.email_id == t.source_email_id).first()
+                result_data["tasks"].append({
                     "task_id": t.task_id,
                     "title": t.title,
                     "assignee_id": t.assignee_id,
@@ -261,9 +263,10 @@ def execute_structured_query(candidate_id: str, s_query: StructuredChatQuery, db
                     "due_date": t.due_date,
                     "deal_value_inr": t.deal_value_inr,
                     "company_name": t.company_name,
-                    "confidence": t.confidence
-                } for t in tasks
-            ]
+                    "confidence": t.confidence,
+                    "from_name": email_obj.from_name if email_obj else None,
+                    "from_email": email_obj.from_email if email_obj else None
+                })
         elif s_query.intent == "aggregate" and s_query.aggregate_field == "deal_value_inr":
             # Sum deal value and also count how many tasks had null deal value
             tasks = query.all()
@@ -398,7 +401,8 @@ def generate_fallback_answer(s_query: StructuredChatQuery, data: Dict[str, Any])
                 return f"No tasks were found {scope_str}."
             task_details = []
             for t in tasks:
-                details = f"- {t['title']} (Assignee: {t['assignee_id']}, Category: {t['category']}, Priority: {t['priority']}"
+                sender_str = f"From: {t['from_name']} ({t['from_email']}) | " if t.get('from_name') else ""
+                details = f"- {t['title']} ({sender_str}Assignee: {t['assignee_id']}, Category: {t['category']}, Priority: {t['priority']}"
                 if t.get('due_date'):
                     details += f", Due: {t['due_date']}"
                 if t.get('deal_value_inr'):
