@@ -127,7 +127,9 @@ def parse_user_query_fallback(query: str) -> StructuredChatQuery:
                     search_term = " ".join(words)
                     
             if search_term:
-                filters["q"] = search_term
+                st_clean = search_term.lower().strip()
+                if st_clean not in ["rfp proposals", "rfp proposal", "rfp", "proposals", "proposal", "marketing", "alliance", "alliances", "finance"]:
+                    filters["q"] = search_term
             
     return StructuredChatQuery(
         intent=intent,
@@ -157,7 +159,7 @@ Ground Rules:
 - PROCESSING STATS: (e.g. "how many emails skipped/processed?", "how many marketing emails received?") → source: 'processing_records' (skips and auto-replies don't create tasks, so stats must query processing_records).
 - RUN DETAILS: (e.g. "what was the duplicates count in the last batch?") → source: 'runs'
 - THREAD HISTORY: (e.g. "did any thread get updated more than once?") → source: 'task_updates'
-- KEYWORD SEARCH: If the user is asking about a specific person's name (e.g., 'rambabu kkr', 'kanhaiya'), email address, company name, or subject keyword that does not match standard fields, extract it into the 'q' filter (e.g., {"q": "rambabu kkr"}).
+- KEYWORD SEARCH: If the user is asking about a specific person's name (e.g., 'rambabu kkr', 'kanhaiya'), email address, company name, or subject keyword that does not match standard fields, extract it into the 'q' filter (e.g., {"q": "rambabu kkr"}). Do NOT put category keywords (like 'RFP', 'proposal', 'marketing', 'alliance', 'finance') in the 'q' search filter. Instead, map them to the 'category' filter (e.g. {"category": "enterprise_rfp"}).
 - SCOPE:
   - If the question mentions "this batch", "current batch", "latest run", "last run" → scope: 'current_batch'
   - Otherwise, default to scope: 'all'
@@ -237,15 +239,17 @@ def execute_structured_query(candidate_id: str, s_query: StructuredChatQuery, db
             if "from_email" in filters:
                 query = query.filter(Email.from_email.ilike(f"%{filters['from_email']}%"))
             if "q" in filters:
-                term = f"%{filters['q']}%"
-                query = query.filter(
-                    Task.title.ilike(term) |
-                    Task.description.ilike(term) |
-                    Task.company_name.ilike(term) |
-                    Email.from_name.ilike(term) |
-                    Email.from_email.ilike(term) |
-                    Email.subject.ilike(term)
-                )
+                term = filters["q"]
+                if term.lower().strip() not in ["rfp proposals", "rfp proposal", "rfp", "proposals", "proposal", "marketing", "alliance", "alliances", "finance"]:
+                    term_pct = f"%{term}%"
+                    query = query.filter(
+                        Task.title.ilike(term_pct) |
+                        Task.description.ilike(term_pct) |
+                        Task.company_name.ilike(term_pct) |
+                        Email.from_name.ilike(term_pct) |
+                        Email.from_email.ilike(term_pct) |
+                        Email.subject.ilike(term_pct)
+                    )
 
         if s_query.intent == "count":
             count_val = query.count()
@@ -310,13 +314,15 @@ def execute_structured_query(candidate_id: str, s_query: StructuredChatQuery, db
             if "from_email" in filters:
                 query = query.filter(Email.from_email.ilike(f"%{filters['from_email']}%"))
             if "q" in filters:
-                term = f"%{filters['q']}%"
-                query = query.filter(
-                    Email.from_name.ilike(term) |
-                    Email.from_email.ilike(term) |
-                    Email.subject.ilike(term) |
-                    Email.body.ilike(term)
-                )
+                term = filters["q"]
+                if term.lower().strip() not in ["rfp proposals", "rfp proposal", "rfp", "proposals", "proposal", "marketing", "alliance", "alliances", "finance"]:
+                    term_pct = f"%{term}%"
+                    query = query.filter(
+                        Email.from_name.ilike(term_pct) |
+                        Email.from_email.ilike(term_pct) |
+                        Email.subject.ilike(term_pct) |
+                        Email.body.ilike(term_pct)
+                    )
 
         if s_query.intent == "count":
             result_data["count"] = query.count()
