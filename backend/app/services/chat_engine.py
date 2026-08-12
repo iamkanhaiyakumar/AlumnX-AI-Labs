@@ -39,7 +39,7 @@ def parse_user_query_fallback(query: str) -> StructuredChatQuery:
         scope = "current_batch"
         
     # Out of scope detection
-    if any(x in q_lower for x in ["send", "email", "assign", "delete", "write to", "contact"]):
+    if any(x in q_lower for x in ["send email", "send an email", "assign ", "delete ", "write to ", "contact "]):
         is_out_of_scope = True
         
     # Source detection
@@ -121,10 +121,12 @@ def parse_user_query_fallback(query: str) -> StructuredChatQuery:
                     break
             
             if not search_term:
-                stop_words = ["list", "show", "tasks", "emails", "get", "find", "all", "me", "what", "how", "many", "count", "about", "the", "from", "for", "of", "to", "by", "in", "with", "on", "at", "a", "an", "any", "some", "task", "active", "status", "queries", "query", "details", "detail", "total", "totals", "number", "numbers", "sum", "aggregate", "processed", "created", "updated", "skipped", "skips", "spurious", "rate", "runs", "run", "batch", "routed", "route", "routing"]
-                words = [w for w in query.split() if w.lower() not in stop_words]
-                if words:
-                    search_term = " ".join(words)
+                matched_any_filter = "priority" in filters or "assignee_id" in filters or "category" in filters or "decision" in filters or "is_spurious" in filters
+                if not matched_any_filter:
+                    stop_words = ["list", "show", "tasks", "emails", "get", "find", "all", "me", "what", "how", "many", "count", "about", "the", "from", "for", "of", "to", "by", "in", "with", "on", "at", "a", "an", "any", "some", "task", "active", "status", "queries", "query", "details", "detail", "total", "totals", "number", "numbers", "sum", "aggregate", "processed", "created", "updated", "skipped", "skips", "spurious", "rate", "runs", "run", "batch", "routed", "route", "routing"]
+                    words = [w for w in query.split() if w.lower().strip("?.!,") not in stop_words]
+                    if words:
+                        search_term = " ".join(words)
                     
             if search_term:
                 st_clean = search_term.lower().strip()
@@ -475,7 +477,7 @@ Rules:
 3. If the user asks for a breakdown that is not in the data, state: "I don't have that breakdown in the stored processing data."
 4. If the user asks you to send an email or take actions outside querying, state that you cannot do that.
 5. DO NOT use markdown bolding or headers (like double asterisks '**' or '#'). Write clean plain text.
-6. When returning a list of tasks or records, ALWAYS start your response with a summary count line stating the total number of matching items found (e.g., 'There are X total tasks/records found. Here is the list:').
+6. When returning a list of tasks or records, ALWAYS start your response with a summary count line stating the total number of matching items found (e.g., 'There are X total tasks/records found. Here is the list:' where X is the EXACT number of items present in the supporting_data tasks or records list), and you MUST list all of those matching items. Do NOT omit or filter out any item from the supporting_data array.
 
 User Question: "{query}"
 Supporting Data (from database):
