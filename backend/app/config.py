@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     # Placeholders to be populated dynamically
     GEMINI_API_KEY: str = ""
     GEMINI_API_KEYS: list[str] = []
+    
+    # Open-Source API Fallback Key
+    GROQ_API_KEY: str = ""
 
     @field_validator("CANDIDATE_ID", mode="before")
     @classmethod
@@ -62,3 +65,4 @@ for key in keys_list:
 # Populate settings properties
 settings.GEMINI_API_KEYS = unique_keys
 settings.GEMINI_API_KEY = unique_keys[0] if unique_keys else ""
+settings.GROQ_API_KEY = env_vals.get("GROQ_API_KEY", os.environ.get("GROQ_API_KEY", "")) or ""

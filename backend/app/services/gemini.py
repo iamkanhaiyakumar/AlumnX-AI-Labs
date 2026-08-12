@@ -99,6 +99,44 @@ def pydantic_to_gemini_schema(model: Type[BaseModel]) -> dict:
         
     return schema_dict
 
+def call_groq_fallback(prompt: str, response_schema: Optional[Type[BaseModel]] = None) -> str:
+    """
+    Fallback call to Groq Cloud API using Llama 3 model when Gemini is rate-limited.
+    """
+    if not settings.GROQ_API_KEY:
+        raise Exception("Groq API key not configured in settings")
+        
+    try:
+        from groq import Groq
+    except ImportError:
+        raise Exception("groq python library not installed")
+        
+    logger.info("Initiating Groq (Llama-3) fallback call...")
+    
+    client = Groq(api_key=settings.GROQ_API_KEY)
+    
+    kwargs = {}
+    if response_schema:
+        kwargs["response_format"] = {"type": "json_object"}
+        prompt += f"\nYour output must be a valid JSON object matching the required fields."
+
+    chat_completion = client.chat.completions.create(
+        messages=[
+            {
+                "role": "user",
+                "content": prompt,
+            }
+        ],
+        model="llama-3.1-8b-instant",
+        temperature=0.1,
+        **kwargs
+    )
+    
+    if chat_completion.choices and chat_completion.choices[0].message.content:
+        return chat_completion.choices[0].message.content
+        
+    raise Exception("Groq returned empty response")
+
 def call_gemini_with_retry(
     prompt: str,
     response_schema: Optional[Type[BaseModel]] = None,
@@ -108,53 +146,61 @@ def call_gemini_with_retry(
     """
     Calls the Gemini API. Rotates keys instantly on rate limits, or fails fast
     on permanent client errors to trigger local fallbacks without hanging.
+    Supports a secondary fallback to Groq (Llama 3) if GROQ_API_KEY is configured.
     """
-    generation_config = {}
-    if response_schema:
-        generation_config["response_mime_type"] = "application/json"
-        generation_config["response_schema"] = pydantic_to_gemini_schema(response_schema)
+    try:
+        generation_config = {}
+        if response_schema:
+            generation_config["response_mime_type"] = "application/json"
+            generation_config["response_schema"] = pydantic_to_gemini_schema(response_schema)
 
-    delay = initial_delay
-    
-    # Configure SDK with active key before calling
-    genai.configure(api_key=get_current_key())
+        delay = initial_delay
+        
+        # Configure SDK with active key before calling
+        genai.configure(api_key=get_current_key())
 
-    for attempt in range(max_retries):
-        try:
-            model = genai.GenerativeModel(settings.GEMINI_MODEL)
-            response = model.generate_content(
-                prompt,
-                generation_config=generation_config if generation_config else None
-            )
-            # Ensure we get clean response text
-            if response and response.text:
-                return response.text
-            raise Exception("Gemini returned an empty response")
-        except ResourceExhausted as e:
-            # HTTP 429 - Rate Limits
-            if len(settings.GEMINI_API_KEYS) > 1:
-                logger.warning(
-                    f"Gemini API rate limit hit on key index {current_key_index % len(settings.GEMINI_API_KEYS)}. "
-                    "Rotating key and retrying immediately..."
+        for attempt in range(max_retries):
+            try:
+                model = genai.GenerativeModel(settings.GEMINI_MODEL)
+                response = model.generate_content(
+                    prompt,
+                    generation_config=generation_config if generation_config else None
                 )
-                rotate_key()
-                continue
-            else:
-                # Only one key: fail fast so local fallback takes over instantly
-                logger.warning("Gemini API rate limit hit (ResourceExhausted). Failing fast to trigger local fallback.")
+                if response and response.text:
+                    return response.text
+                raise Exception("Gemini returned an empty response")
+            except ResourceExhausted as e:
+                # HTTP 429 - Rate Limits
+                if len(settings.GEMINI_API_KEYS) > 1:
+                    logger.warning(
+                        f"Gemini API rate limit hit on key index {current_key_index % len(settings.GEMINI_API_KEYS)}. "
+                        "Rotating key and retrying immediately..."
+                    )
+                    rotate_key()
+                    continue
+                else:
+                    logger.warning("Gemini API rate limit hit (ResourceExhausted). Failing fast to trigger fallback.")
+                    raise e
+            except GoogleAPICallError as e:
+                status_code = getattr(e, "code", None)
+                if status_code in [400, 403, 404, 429]:
+                    logger.warning(f"Gemini API returned permanent client error code {status_code}: {e}. Raising immediately.")
+                    raise e
+                logger.warning(f"Gemini API call failed on attempt {attempt+1}: {e}. Retrying in {delay}s...")
+                time.sleep(delay)
+                delay = min(delay * 2.0, 30.0)
+            except Exception as e:
+                logger.warning(f"Unexpected error calling Gemini on attempt {attempt+1}: {e}. Raising immediately.")
                 raise e
-        except GoogleAPICallError as e:
-            # Check if status code is a permanent client error (400, 403, 404, 429)
-            status_code = getattr(e, "code", None)
-            if status_code in [400, 403, 404, 429]:
-                logger.warning(f"Gemini API returned permanent client error code {status_code}: {e}. Raising immediately.")
-                raise e
-            # Otherwise it's a transient server error (500, 503, etc.), sleep and retry
-            logger.warning(f"Gemini API call failed on attempt {attempt+1}: {e}. Retrying in {delay}s...")
-            time.sleep(delay)
-            delay = min(delay * 2.0, 30.0)
-        except Exception as e:
-            logger.warning(f"Unexpected error calling Gemini on attempt {attempt+1}: {e}. Raising immediately.")
-            raise e
-            
-    raise Exception("Max retries exceeded when calling Gemini API. Ingestion pipeline aborted.")
+                
+        raise Exception("Max retries exceeded when calling Gemini API.")
+    except Exception as gemini_err:
+        # Gemini failed! Try Groq fallback before giving up
+        if settings.GROQ_API_KEY:
+            try:
+                return call_groq_fallback(prompt, response_schema)
+            except Exception as groq_err:
+                logger.warning(f"Groq fallback also failed: {groq_err}")
+        # If Groq is not configured or failed, re-raise the original Gemini exception
+        raise gemini_err
+
