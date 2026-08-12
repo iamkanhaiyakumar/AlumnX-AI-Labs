@@ -183,14 +183,15 @@ export function generateSampleEmails(count = 250) {
   const categories = ["rfp", "demo", "psu", "marketing", "invoice", "reseller", "ooo", "spam", "newsletter", "reply", "conflict"];
 
   for (let i = 13; i <= count; i++) {
-    const category = categories[i % categories.length];
-    const company = companies[i % companies.length];
-    const sender = names[i % names.length];
-    const email_domain = company.toLowerCase().replace(/\s+/g, "") + ".com";
+    const category = categories[Math.floor(Math.random() * categories.length)];
+    const base_company = companies[Math.floor(Math.random() * companies.length)];
+    const company = `${base_company} ${Math.floor(Math.random() * 800 + 100)}`;
+    const sender = names[Math.floor(Math.random() * names.length)];
+    const email_domain = company.toLowerCase().replace(/[^a-z0-9]/g, "") + ".com";
     const from_email = `${sender.toLowerCase().replace(/\s+/g, "")}@${email_domain}`;
 
-    const date_offset = Math.floor(i / 15);
-    const hour_offset = i % 24;
+    const date_offset = Math.floor(Math.random() * 6);
+    const hour_offset = Math.floor(Math.random() * 24);
     const received_at = `2026-08-0${1 + date_offset}T${hour_offset.toString().padStart(2, "0")}:15:00+05:30`;
 
     let email = {
@@ -209,40 +210,51 @@ export function generateSampleEmails(count = 250) {
     };
 
     if (category === "rfp") {
+      const budget = Math.floor(Math.random() * 80) + 15; // 15 to 95 Lakhs
+      const day = Math.floor(Math.random() * 10) + 10; // 10 to 20
       email.subject = `RFP Request - Enterprise Solutions for ${company}`;
-      email.body = `Dear Sales Team,\n\n${company} is looking for a comprehensive document suite. We have budgeted Rs. 45 Lakhs for this initiative. Kindly submit your proposal by 15th August 2026.\n\nWarm regards,\n${sender}`;
+      email.body = `Dear Sales Team,\n\n${company} is looking for a comprehensive document suite. We have budgeted Rs. ${budget} Lakhs for this initiative. Kindly submit your proposal by ${day}th August 2026.\n\nWarm regards,\n${sender}`;
     } else if (category === "demo") {
+      const city = ["Pune", "Mumbai", "Bangalore", "Delhi", "Hyderabad", "Chennai"][Math.floor(Math.random() * 6)];
       email.subject = `Demo Request - ${company}`;
-      email.body = `Hi Team,\n\nWe saw your platform and would love to schedule a demo. Nothing urgent, next week works. Thanks!\n\n${sender}`;
+      email.body = `Hi Team,\n\nWe are a startup in ${city} and would love to schedule a demo of your product. Nothing urgent, next week works. Thanks!\n\n${sender}`;
     } else if (category === "psu") {
-      email.subject = `Tender for software licensing - NTPC procurement`;
-      email.body = `Tender announcement: NTPC Limited invites bids for procurement. Total estimated value is Rs. 7,50,000. Last date for bid submission is 10-08-2026.`;
+      const budget = Math.floor(Math.random() * 8) + 3; // 3 to 10 Lakhs
+      const tender_id = Math.floor(Math.random() * 8000 + 1000);
+      email.subject = `Tender for software licensing - NTPC procurement ID-${tender_id}`;
+      email.body = `Tender announcement: NTPC Limited invites bids for software licensing. Total estimated value is Rs. ${budget},50,000. Last date for bid submission is 10-08-2026.`;
     } else if (category === "marketing") {
-      email.subject = `Webinar sponsorship collaboration`;
-      email.body = `Hi,\n\nWe are organizing the annual FinTech Conclave 2026. Sponsorship slots are open starting at Rs 3,00,000. Let us know if you want to collaborate.\n\n${sender}`;
+      const value = Math.floor(Math.random() * 4) + 2; // 2 to 5 Lakhs
+      email.subject = `Webinar sponsorship collaboration proposal`;
+      email.body = `Hi,\n\nWe are organizing the annual FinTech Conclave 2026. Sponsorship slots are open starting at Rs ${value},00,000. Let us know if you want to collaborate.\n\n${sender}`;
     } else if (category === "invoice") {
-      email.subject = `Overdue payment reminder - Invoice INV-2026-990`;
-      email.body = `Hello Finance team,\n\nKindly note invoice INV-2026-990 for Rs 2,50,000 is still pending. This was due 10 days ago. Please pay immediately.\n\nRegards,\nAccounts Team`;
+      const val = Math.floor(Math.random() * 150000) + 50000;
+      const inv_id = Math.floor(Math.random() * 800 + 100);
+      email.subject = `Overdue payment reminder - Invoice INV-2026-${inv_id}`;
+      email.body = `Hello Finance team,\n\nKindly note invoice INV-2026-${inv_id} for Rs ${val.toLocaleString()} is still pending. This was due 10 days ago. Please pay immediately.\n\nRegards,\nAccounts Team`;
     } else if (category === "reseller") {
-      email.subject = `Channel partnership inquiry`;
-      email.body = `Hello,\n\nWe are a software reseller with client networks in EMEA. We'd like to explore reseller terms for your SaaS suite.\n\nThanks,\n${sender}`;
+      const region = ["EMEA", "APAC", "LATAM", "US & Canada"][Math.floor(Math.random() * 4)];
+      email.subject = `Channel partnership inquiry for ${region}`;
+      email.body = `Hello,\n\nWe are a software reseller with client networks in ${region}. We'd like to explore reseller terms for your SaaS suite.\n\nThanks,\n${sender}`;
     } else if (category === "ooo") {
+      const date = Math.floor(Math.random() * 10) + 12;
       email.subject = `Auto: Out of Office`;
-      email.body = `Thank you for your email. I am out of the office until 20th August with no email access. For urgent issues contact support@${email_domain}.`;
+      email.body = `Thank you for your email. I am out of the office until ${date}th August with no email access. For urgent issues contact support@${email_domain}.`;
     } else if (category === "spam") {
       email.subject = `Boost your website traffic - SEO promotion`;
       email.body = `Hello,\n\nWe noticed you are not ranking for key terms. We offer PR, content writing, SEO, and social marketing services. Let's hop on a quick 10 min call? [Unsubscribe]`;
     } else if (category === "newsletter") {
-      email.subject = `SaaS Growth Newsletter #56`;
+      const num = Math.floor(Math.random() * 300) + 100;
+      email.subject = `SaaS Growth Newsletter #${num}`;
       email.body = `Here are the top SaaS growth trends for 2026. Tips on retention, churn, and scaling. Click here to unsubscribe.`;
     } else if (category === "reply") {
-      // reply to previous rfp
       const parent_num = i - 9;
       email.subject = `Re: RFP Request - Enterprise Solutions for ${companies[parent_num % companies.length]}`;
       email.thread_id = `th_synth_${parent_num.toString().padStart(3, "0")}`;
       email.message_index = 1;
       email.is_reply = true;
-      email.body = `Quick update: our board approved a revised budget of 55 lakhs. Also, we need the RFP by 14th August 2026.\n\nOn Sun, Aug 1, 2026 at 10:15 AM wrote:\n> Dear Sales Team...`;
+      const budget = Math.floor(Math.random() * 40) + 45; // 45 to 85 Lakhs
+      email.body = `Quick update: our board approved a revised budget of ${budget} lakhs. Also, we need the RFP by 14th August 2026.\n\nOn Sun, Aug 1, 2026 at 10:15 AM wrote:\n> Dear Sales Team...`;
     } else if (category === "conflict") {
       email.subject = `Product Enquiry & Joint Webinar Collaboration`;
       email.body = `Dear Team,\n\nWe want to evaluate your system for our 200 user team, budget is not fixed yet. Additionally, our CMO would like to co-host a joint webinar. Who handles these? Thanks,\n${sender}`;
