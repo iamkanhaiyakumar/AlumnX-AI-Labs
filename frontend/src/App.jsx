@@ -38,13 +38,31 @@ export default function App() {
       timestamp: new Date().toLocaleTimeString()
     }
   ]);
+  const [healthStatus, setHealthStatus] = useState("Checking...");
   const [loadingChat, setLoadingChat] = useState(false);
   const chatEndRef = useRef(null);
 
   // Load initial configurations, seed users and cache statistics
+  const checkHealth = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/health`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.status === "healthy") {
+          setHealthStatus("Active");
+          return;
+        }
+      }
+      setHealthStatus("Offline");
+    } catch (e) {
+      setHealthStatus("Offline");
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
     refreshDashboard();
+    checkHealth();
   }, []);
 
   useEffect(() => {
@@ -305,9 +323,15 @@ export default function App() {
         </div>
         <div className="header-status">
           <span className="candidate-badge">Candidate ID: {CANDIDATE_ID}</span>
-          <div className="status-indicator">
-            <span className="status-dot"></span>
-            <span>Active</span>
+          <div className="status-indicator" style={healthStatus !== "Active" ? {
+            background: "rgba(239, 68, 68, 0.1)",
+            border: "1px solid rgba(239, 68, 68, 0.2)",
+            color: "#fca5a5"
+          } : {}}>
+            <span className="status-dot" style={healthStatus !== "Active" ? {
+              background: "#ef4444"
+            } : {}}></span>
+            <span>{healthStatus}</span>
           </div>
         </div>
       </header>
@@ -506,7 +530,7 @@ export default function App() {
             <h2 className="card-title" style={{ margin: 0 }}>📋 Routed Tasks ({filteredTasks.length})</h2>
             <input 
               type="text" 
-              placeholder="Search tasks..." 
+              placeholder="Search by name, email, company, task, category, priority..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               style={{
@@ -619,6 +643,40 @@ export default function App() {
               </div>
             )}
             <div ref={chatEndRef} />
+          </div>
+
+          {/* Try Asking suggestions section */}
+          <div style={{ marginBottom: "0.8rem" }}>
+            <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)", marginRight: "0.4rem" }}>Try asking:</span>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginTop: "0.3rem" }}>
+              {[
+                "Show the emails containing RFP proposals",
+                "Show emails from Kanhaiya",
+                "Show emails from Kanhaiya Kumar",
+                "How many high priority tasks?",
+                "What is the spurious rate?"
+              ].map((q) => (
+                <button
+                  key={q}
+                  type="button"
+                  onClick={() => setChatQuery(q)}
+                  style={{
+                    background: "rgba(255, 255, 255, 0.05)",
+                    border: "1px solid var(--border-muted)",
+                    borderRadius: "12px",
+                    padding: "0.2rem 0.6rem",
+                    fontSize: "0.75rem",
+                    color: "var(--accent-cyan)",
+                    cursor: "pointer",
+                    transition: "all 0.2s ease"
+                  }}
+                  onMouseOver={(e) => { e.currentTarget.style.background = "rgba(255, 255, 255, 0.1)"; }}
+                  onMouseOut={(e) => { e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)"; }}
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
           </div>
 
           <form onSubmit={handleSendChat} className="chat-input-area">

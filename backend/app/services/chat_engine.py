@@ -107,12 +107,27 @@ def parse_user_query_fallback(query: str) -> StructuredChatQuery:
             filters["category"] = "finance"
 
         # Add support for generic query search (unrecognized terms like 'kanhaiya')
-        matched_filter = "priority" in filters or "assignee_id" in filters or "category" in filters or "decision" in filters or "is_spurious" in filters
-        if not matched_filter and source == "tasks":
-            stop_words = ["list", "show", "tasks", "emails", "get", "find", "all", "me", "what", "how", "many", "count", "about", "the", "from", "for", "of", "to", "by", "in", "with", "on", "at", "a", "an", "any", "some", "task", "active", "status", "queries", "query", "details", "detail", "total", "totals", "number", "numbers", "sum", "aggregate", "processed", "created", "updated", "skipped", "skips", "spurious", "rate", "runs", "run", "batch", "routed", "route", "routing"]
-            words = [w for w in q_lower.split() if w not in stop_words and len(w) > 2]
-            if words:
-                filters["q"] = words[0]
+        if source in ["tasks", "processing_records"]:
+            search_term = None
+            search_prefixes = ["containing ", "about ", "subject ", "with ", "search ", "from "]
+            for prefix in search_prefixes:
+                if prefix in q_lower:
+                    idx = q_lower.index(prefix) + len(prefix)
+                    search_term = query[idx:].strip()
+                    if search_term.endswith("?"):
+                        search_term = search_term[:-1].strip()
+                    if search_term.endswith("."):
+                        search_term = search_term[:-1].strip()
+                    break
+            
+            if not search_term:
+                stop_words = ["list", "show", "tasks", "emails", "get", "find", "all", "me", "what", "how", "many", "count", "about", "the", "from", "for", "of", "to", "by", "in", "with", "on", "at", "a", "an", "any", "some", "task", "active", "status", "queries", "query", "details", "detail", "total", "totals", "number", "numbers", "sum", "aggregate", "processed", "created", "updated", "skipped", "skips", "spurious", "rate", "runs", "run", "batch", "routed", "route", "routing"]
+                words = [w for w in query.split() if w.lower() not in stop_words]
+                if words:
+                    search_term = " ".join(words)
+                    
+            if search_term:
+                filters["q"] = search_term
             
     return StructuredChatQuery(
         intent=intent,
@@ -225,9 +240,11 @@ def execute_structured_query(candidate_id: str, s_query: StructuredChatQuery, db
                 term = f"%{filters['q']}%"
                 query = query.filter(
                     Task.title.ilike(term) |
+                    Task.description.ilike(term) |
                     Task.company_name.ilike(term) |
                     Email.from_name.ilike(term) |
-                    Email.from_email.ilike(term)
+                    Email.from_email.ilike(term) |
+                    Email.subject.ilike(term)
                 )
 
         if s_query.intent == "count":
@@ -297,7 +314,8 @@ def execute_structured_query(candidate_id: str, s_query: StructuredChatQuery, db
                 query = query.filter(
                     Email.from_name.ilike(term) |
                     Email.from_email.ilike(term) |
-                    Email.subject.ilike(term)
+                    Email.subject.ilike(term) |
+                    Email.body.ilike(term)
                 )
 
         if s_query.intent == "count":
