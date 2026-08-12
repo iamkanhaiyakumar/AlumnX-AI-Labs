@@ -140,6 +140,7 @@ export default function App() {
     let totalCreated = 0;
     let totalUpdated = 0;
     let totalSkipped = 0;
+    let totalDuplicates = 0;
     let allErrors = [];
 
     try {
@@ -161,6 +162,7 @@ export default function App() {
           totalCreated += data.tasks_created;
           totalUpdated += data.tasks_updated;
           totalSkipped += data.skipped;
+          totalDuplicates += data.duplicates || 0;
           if (data.errors) {
             allErrors = allErrors.concat(data.errors);
           }
@@ -176,9 +178,14 @@ export default function App() {
         tasks_created: totalCreated,
         tasks_updated: totalUpdated,
         skipped: totalSkipped,
+        duplicates: totalDuplicates,
         errors: allErrors
       });
       refreshDashboard();
+
+      if (totalDuplicates > 0) {
+        alert(`⚠️ Alert: ${totalDuplicates} duplicate email(s) were detected and bypassed.\n\nSince their "email_id" already exists in the database, the system skipped them to prevent duplicate task creation. To create a new task, please change the "email_id" to a unique value!`);
+      }
     } catch (e) {
       alert(`Network error running ingestion: ${e.message}`);
     } finally {
@@ -386,6 +393,10 @@ export default function App() {
             <div>
               <div className="stat-label">Emails Skipped</div>
               <div className="stat-value" style={{ color: "var(--status-skipped)" }}>{ingestResults.skipped}</div>
+            </div>
+            <div>
+              <div className="stat-label">Duplicates Bypassed</div>
+              <div className="stat-value" style={{ color: "#f87171" }}>{ingestResults.duplicates}</div>
             </div>
           </div>
         </section>

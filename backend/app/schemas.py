@@ -105,6 +105,7 @@ class IngestResponse(BaseModel):
     tasks_created: int
     tasks_updated: int
     skipped: int
+    duplicates: int = 0
     errors: List[str] = []
 
 # Grounded Chat schemas

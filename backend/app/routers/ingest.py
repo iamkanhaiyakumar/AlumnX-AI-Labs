@@ -30,6 +30,7 @@ def ingest_emails(payload: IngestRequest, db: Session = Depends(get_db)):
             tasks_created=result["tasks_created"],
             tasks_updated=result["tasks_updated"],
             skipped=result["skipped"],
+            duplicates=result["duplicates"],
             errors=result["errors"]
         )
     except Exception as e:
