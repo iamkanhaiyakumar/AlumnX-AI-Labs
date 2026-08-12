@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     CANDIDATE_ID: str = Field(..., validation_alias="CANDIDATE_ID")
     DATABASE_URL: str = Field(..., validation_alias="DATABASE_URL")
     FRONTEND_URL: str = Field("http://localhost:5173", validation_alias="FRONTEND_URL")
-    GEMINI_MODEL: str = Field("gemini-1.5-flash", validation_alias="GEMINI_MODEL")
+    GEMINI_MODEL: str = Field("gemini-3.5-flash", validation_alias="GEMINI_MODEL")
     
     # Placeholders to be populated dynamically
     GEMINI_API_KEY: str = ""
