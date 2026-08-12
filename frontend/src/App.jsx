@@ -397,21 +397,6 @@ export default function App() {
             <button className="btn btn-secondary" onClick={handleGenerateSample} disabled={loadingIngest}>
               🔄 Generate Sample Emails
             </button>
-            <button 
-              className="btn" 
-              style={{
-                background: "linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.3))",
-                border: "1px solid rgba(239, 68, 68, 0.4)",
-                color: "#fca5a5",
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem"
-              }} 
-              onClick={handleClearDatabase}
-              disabled={loadingIngest}
-            >
-              🗑️ Reset Database
-            </button>
           </div>
         </div>
       </section>
