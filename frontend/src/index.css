@@ -346,6 +346,10 @@ body {
   align-items: start;
 }
 
+.dashboard-grid > * {
+  min-width: 0;
+}
+
 @media (max-width: 1024px) {
   .dashboard-grid {
     grid-template-columns: 1fr;
