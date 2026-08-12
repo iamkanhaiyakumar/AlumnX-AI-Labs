@@ -1,4 +1,5 @@
-from fastapi import FastAPI, Depends, status, Request
+from typing import Optional
+from fastapi import FastAPI, Depends, status, Request, Header, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
@@ -84,22 +85,29 @@ def health_check(db: Session = Depends(get_db)):
             "candidate_id": settings.CANDIDATE_ID
         }
     except Exception as e:
+        import logging
+        logger = logging.getLogger("uvicorn.error")
+        logger.error(f"Database health check failed: {e}")
         return JSONResponse(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            content={
-                "status": "unhealthy",
-                "database": f"failed: {str(e)}",
-                "candidate_id": settings.CANDIDATE_ID
-            }
+            content={"status": "unhealthy"}
         )
 
 # Register Admin API for resetting database
 @app.post("/api/admin/clear-db", tags=["Admin API"])
-def clear_database(db: Session = Depends(get_db)):
+def clear_database(db: Session = Depends(get_db), x_admin_token: Optional[str] = Header(None)):
     """
     Deletes all Tasks, Emails, ProcessingRecords, Runs, and TaskUpdates associated with this candidate ID.
     Allows candidates to reset their database to a clean state for testing/demoing.
+    Protected in production environment by ADMIN_RESET_TOKEN.
     """
+    import os
+    is_production = "render.com" in settings.DATABASE_URL or os.getenv("RENDER") == "true"
+    if is_production:
+        admin_token = os.getenv("ADMIN_RESET_TOKEN", "")
+        if not admin_token or x_admin_token != admin_token:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not Found")
+
     from .models import Task, Email, ProcessingRecord, Run, TaskUpdate
     try:
         candidate_id = settings.CANDIDATE_ID
