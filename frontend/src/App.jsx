@@ -56,6 +56,33 @@ export default function App() {
     fetchStats();
   };
 
+  const handleClearDatabase = async () => {
+    if (!window.confirm("Are you sure you want to delete all tasks, runs, and email records from the database? This cannot be undone.")) {
+      return;
+    }
+    
+    setLoadingIngest(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/clear-db`, {
+        method: "POST"
+      });
+      if (res.ok) {
+        alert("Database successfully reset!");
+        setEmailsInput("");
+        setParsedEmails([]);
+        setIngestResults(null);
+        refreshDashboard();
+      } else {
+        alert("Failed to reset database.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error resetting database.");
+    } finally {
+      setLoadingIngest(false);
+    }
+  };
+
   const fetchUsers = async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/users`);
@@ -345,6 +372,21 @@ export default function App() {
             />
             <button className="btn btn-secondary" onClick={handleGenerateSample} disabled={loadingIngest}>
               🔄 Generate Sample Emails
+            </button>
+            <button 
+              className="btn" 
+              style={{
+                background: "linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.3))",
+                border: "1px solid rgba(239, 68, 68, 0.4)",
+                color: "#fca5a5",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem"
+              }} 
+              onClick={handleClearDatabase}
+              disabled={loadingIngest}
+            >
+              🗑️ Reset Database
             </button>
           </div>
         </div>
