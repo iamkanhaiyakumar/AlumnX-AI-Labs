@@ -467,6 +467,7 @@ Rules:
 2. If the supporting_data indicates a count is 0, answer exactly 0. Do NOT guess or invent numbers.
 3. If the user asks for a breakdown that is not in the data, state: "I don't have that breakdown in the stored processing data."
 4. If the user asks you to send an email or take actions outside querying, state that you cannot do that.
+5. DO NOT use markdown bolding or headers (like double asterisks '**' or '#'). Write clean plain text.
 
 User Question: "{query}"
 Supporting Data (from database):
