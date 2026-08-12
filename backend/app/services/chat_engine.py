@@ -123,6 +123,14 @@ def parse_user_query_fallback(query: str) -> StructuredChatQuery:
         elif "triage" in q_lower:
             filters["assignee_id"] = "u_triage"
             
+        # Add support for generic query search (unrecognized terms like 'kanhaiya')
+        matched_filter = "priority" in filters or "assignee_id" in filters or "category" in filters
+        if not matched_filter:
+            stop_words = ["list", "show", "tasks", "emails", "get", "find", "all", "me", "what", "how", "many", "count", "about", "the"]
+            words = [w for w in q_lower.split() if w not in stop_words and len(w) > 2]
+            if words:
+                filters["q"] = words[0]
+            
     return StructuredChatQuery(
         intent=intent,
         source=source,
@@ -219,6 +227,24 @@ def execute_structured_query(candidate_id: str, s_query: StructuredChatQuery, db
             query = query.filter(Task.assignee_id == filters["assignee_id"])
         if "company_name" in filters:
             query = query.filter(Task.company_name.ilike(f"%{filters['company_name']}%"))
+            
+        # Join with Email to filter by sender details or generic term 'q'
+        if "from_name" in filters or "from_email" in filters or "q" in filters:
+            if s_query.scope != "current_batch":
+                query = query.join(Email, (Task.candidate_id == Email.candidate_id) & (Task.source_email_id == Email.email_id))
+            
+            if "from_name" in filters:
+                query = query.filter(Email.from_name.ilike(f"%{filters['from_name']}%"))
+            if "from_email" in filters:
+                query = query.filter(Email.from_email.ilike(f"%{filters['from_email']}%"))
+            if "q" in filters:
+                term = f"%{filters['q']}%"
+                query = query.filter(
+                    Task.title.ilike(term) |
+                    Task.company_name.ilike(term) |
+                    Email.from_name.ilike(term) |
+                    Email.from_email.ilike(term)
+                )
 
         if s_query.intent == "count":
             count_val = query.count()
@@ -270,6 +296,22 @@ def execute_structured_query(candidate_id: str, s_query: StructuredChatQuery, db
             query = query.filter(ProcessingRecord.is_spurious == filters["is_spurious"])
         if "assignee_id" in filters:
             query = query.filter(ProcessingRecord.assignee_id == filters["assignee_id"])
+            
+        # Join with Email to filter by sender details or generic term 'q'
+        if "from_name" in filters or "from_email" in filters or "q" in filters:
+            query = query.join(Email, (ProcessingRecord.candidate_id == Email.candidate_id) & (ProcessingRecord.email_id == Email.email_id))
+                
+            if "from_name" in filters:
+                query = query.filter(Email.from_name.ilike(f"%{filters['from_name']}%"))
+            if "from_email" in filters:
+                query = query.filter(Email.from_email.ilike(f"%{filters['from_email']}%"))
+            if "q" in filters:
+                term = f"%{filters['q']}%"
+                query = query.filter(
+                    Email.from_name.ilike(term) |
+                    Email.from_email.ilike(term) |
+                    Email.subject.ilike(term)
+                )
 
         if s_query.intent == "count":
             result_data["count"] = query.count()
