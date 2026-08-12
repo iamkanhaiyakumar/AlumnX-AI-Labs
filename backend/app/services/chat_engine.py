@@ -20,6 +20,120 @@ class StructuredChatQuery(BaseModel):
     is_out_of_scope: bool = Field(False, description="True if user requests an action like sending an email or modifying systems.")
     reasoning: str = Field(..., description="Brief explanation for query construction.")
 
+def parse_user_query_fallback(query: str) -> StructuredChatQuery:
+    """
+    Translates a user natural language query into a StructuredChatQuery using rule-based keyword matching when Gemini fails.
+    """
+    q_lower = query.lower()
+    
+    intent = "list"
+    source = "tasks"
+    scope = "all"
+    filters = {}
+    aggregate_field = None
+    target_thread_id = None
+    is_out_of_scope = False
+    
+    # Scope detection
+    if any(x in q_lower for x in ["this batch", "current batch", "latest run", "last run", "just pasted", "just generated"]):
+        scope = "current_batch"
+        
+    # Out of scope detection
+    if any(x in q_lower for x in ["send", "email", "assign", "delete", "write to", "contact"]):
+        is_out_of_scope = True
+        
+    # Thread history detection
+    if "updated" in q_lower or "thread" in q_lower:
+        if "more than once" in q_lower or "multiple times" in q_lower:
+            intent = "thread_history"
+            source = "task_updates"
+            
+    # Spurious rate / skips
+    elif "spurious" in q_lower or "skip" in q_lower:
+        source = "processing_records"
+        if "rate" in q_lower or "percentage" in q_lower or "ratio" in q_lower:
+            intent = "rate"
+        else:
+            intent = "count"
+            filters["is_spurious"] = True
+            
+    # Triage queries
+    elif "triage" in q_lower:
+        source = "tasks"
+        intent = "list"
+        filters["assignee_id"] = "u_triage"
+        
+    # Deal value aggregate
+    elif "deal value" in q_lower or "budget" in q_lower or "sum" in q_lower:
+        intent = "aggregate"
+        source = "tasks"
+        aggregate_field = "deal_value_inr"
+        if "marketing" in q_lower:
+            filters["category"] = "marketing"
+        elif "rfp" in q_lower or "enterprise" in q_lower:
+            filters["category"] = "enterprise_rfp"
+            
+    # Count vs List
+    elif any(x in q_lower for x in ["how many", "count", "number of"]):
+        intent = "count"
+        
+        # Determine source
+        if "marketing" in q_lower and "spam" in q_lower:
+            source = "processing_records"
+        elif "spam" in q_lower or "newsletter" in q_lower or "ooo" in q_lower or "out of office" in q_lower:
+            source = "processing_records"
+            filters["is_spurious"] = True
+        else:
+            source = "tasks"
+            
+        # Category/Assignee filters
+        if "marketing" in q_lower:
+            filters["category"] = "marketing"
+        elif "rfp" in q_lower or "proposal" in q_lower:
+            filters["category"] = "enterprise_rfp"
+        elif "alliance" in q_lower or "partner" in q_lower:
+            filters["category"] = "alliances"
+        elif "finance" in q_lower or "invoice" in q_lower:
+            filters["category"] = "finance"
+            
+    # List queries
+    else:
+        intent = "list"
+        source = "tasks"
+        
+        # Priority filters
+        if "high" in q_lower:
+            filters["priority"] = "high"
+        elif "medium" in q_lower:
+            filters["priority"] = "medium"
+        elif "low" in q_lower:
+            filters["priority"] = "low"
+            
+        # Assignee
+        if "aarti" in q_lower:
+            filters["assignee_id"] = "u_aarti"
+        elif "rohit" in q_lower:
+            filters["assignee_id"] = "u_rohit"
+        elif "meera" in q_lower:
+            filters["assignee_id"] = "u_meera"
+        elif "karan" in q_lower:
+            filters["assignee_id"] = "u_karan"
+        elif "divya" in q_lower:
+            filters["assignee_id"] = "u_divya"
+        elif "triage" in q_lower:
+            filters["assignee_id"] = "u_triage"
+            
+    return StructuredChatQuery(
+        intent=intent,
+        source=source,
+        scope=scope,
+        filters=filters,
+        aggregate_field=aggregate_field,
+        target_thread_id=target_thread_id,
+        is_out_of_scope=is_out_of_scope,
+        reasoning="Local keyword parser fallback."
+    )
+
 def parse_user_query(query: str) -> StructuredChatQuery:
     """
     Uses Gemini to translate a user natural language query into a StructuredChatQuery object.
@@ -290,14 +404,8 @@ def answer_chat_query(candidate_id: str, query: str, db: Session) -> Dict[str, A
         s_query = parse_user_query(query)
     except Exception as e:
         logger.error(f"Failed to parse user query: {e}")
-        # Default query representation on LLM failure
-        s_query = StructuredChatQuery(
-            intent="list",
-            source="tasks",
-            scope="all",
-            filters={},
-            reasoning="Fallback due to LLM parsing error."
-        )
+        # Default query representation on LLM failure using local fallback
+        s_query = parse_user_query_fallback(query)
 
     # Step 2: Query PostgreSQL database
     supporting_data = execute_structured_query(candidate_id, s_query, db)
