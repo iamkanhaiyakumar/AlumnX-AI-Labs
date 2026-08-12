@@ -93,6 +93,44 @@ def health_check(db: Session = Depends(get_db)):
             }
         )
 
+# Register Admin API for resetting database
+@app.post("/api/admin/clear-db", tags=["Admin API"])
+def clear_database(db: Session = Depends(get_db)):
+    """
+    Deletes all Tasks, Emails, ProcessingRecords, Runs, and TaskUpdates associated with this candidate ID.
+    Allows candidates to reset their database to a clean state for testing/demoing.
+    """
+    from .models import Task, Email, ProcessingRecord, Run, TaskUpdate
+    try:
+        candidate_id = settings.CANDIDATE_ID
+        
+        # Delete dependencies first
+        db.query(TaskUpdate).filter(
+            TaskUpdate.task_id.in_(
+                db.query(Task.task_id).filter(Task.candidate_id == candidate_id)
+            )
+        ).delete(synchronize_session=False)
+        
+        db.query(Task).filter(Task.candidate_id == candidate_id).delete(synchronize_session=False)
+        db.query(ProcessingRecord).filter(ProcessingRecord.candidate_id == candidate_id).delete(synchronize_session=False)
+        db.query(Email).filter(Email.candidate_id == candidate_id).delete(synchronize_session=False)
+        db.query(Run).filter(Run.candidate_id == candidate_id).delete(synchronize_session=False)
+        
+        db.commit()
+        return {
+            "message": "Database reset successful. All candidate tables have been cleared.",
+            "candidate_id": candidate_id
+        }
+    except Exception as e:
+        db.rollback()
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                "error": "database_clear_failed",
+                "detail": str(e)
+            }
+        )
+
 # Register routes under single base URL
 app.include_router(tasks.router, tags=["Task API"])
 app.include_router(users.router, tags=["Users API"])
