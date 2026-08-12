@@ -393,7 +393,7 @@ def generate_fallback_answer(s_query: StructuredChatQuery, data: Dict[str, Any])
                     details += f", Value: ₹{t['deal_value_inr']:,} INR"
                 details += ")"
                 task_details.append(details)
-            return f"The tasks {scope_str} are:\n" + "\n".join(task_details)
+            return f"There are {len(tasks)} total tasks found {scope_str}. Here is the list:\n" + "\n".join(task_details)
         elif s_query.source == "processing_records":
             recs = data.get("records", [])
             if not recs:
@@ -401,7 +401,7 @@ def generate_fallback_answer(s_query: StructuredChatQuery, data: Dict[str, Any])
             rec_summaries = []
             for r in recs:
                 rec_summaries.append(f"- Email {r['email_id']}: Decision: {r['decision']} (Reason: {r.get('reason', 'N/A')})")
-            return f"The processed records {scope_str} are:\n" + "\n".join(rec_summaries)
+            return f"There are {len(recs)} total processed records found {scope_str}. Here is the list:\n" + "\n".join(rec_summaries)
 
     elif s_query.intent == "rate" and "spurious_rate" in data:
         rate = data["spurious_rate"]
@@ -451,6 +451,7 @@ Rules:
 3. If the user asks for a breakdown that is not in the data, state: "I don't have that breakdown in the stored processing data."
 4. If the user asks you to send an email or take actions outside querying, state that you cannot do that.
 5. DO NOT use markdown bolding or headers (like double asterisks '**' or '#'). Write clean plain text.
+6. When returning a list of tasks or records, ALWAYS start your response with a summary count line stating the total number of matching items found (e.g., 'There are X total tasks/records found. Here is the list:').
 
 User Question: "{query}"
 Supporting Data (from database):
