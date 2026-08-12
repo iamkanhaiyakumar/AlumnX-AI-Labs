@@ -98,7 +98,11 @@ export default function App() {
   const handleInputChange = (e) => {
     const val = e.target.value;
     setEmailsInput(val);
-    if (!val.strip) return;
+    if (!val.trim()) {
+      setParsedEmails([]);
+      setInputError("");
+      return;
+    }
     
     try {
       const parsed = JSON.parse(val);
