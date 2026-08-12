@@ -126,7 +126,7 @@ def parse_user_query_fallback(query: str) -> StructuredChatQuery:
         # Add support for generic query search (unrecognized terms like 'kanhaiya')
         matched_filter = "priority" in filters or "assignee_id" in filters or "category" in filters
         if not matched_filter:
-            stop_words = ["list", "show", "tasks", "emails", "get", "find", "all", "me", "what", "how", "many", "count", "about", "the"]
+            stop_words = ["list", "show", "tasks", "emails", "get", "find", "all", "me", "what", "how", "many", "count", "about", "the", "from", "for", "of", "to", "by", "in", "with", "on", "at", "a", "an", "any", "some"]
             words = [w for w in q_lower.split() if w not in stop_words and len(w) > 2]
             if words:
                 filters["q"] = words[0]
