@@ -42,65 +42,38 @@ def parse_user_query_fallback(query: str) -> StructuredChatQuery:
     if any(x in q_lower for x in ["send", "email", "assign", "delete", "write to", "contact"]):
         is_out_of_scope = True
         
+    # Source detection
+    if any(x in q_lower for x in ["processed", "skipped", "spurious", "auto-reply", "spam", "newsletter", "ooo", "out of office"]):
+        source = "processing_records"
+        if "spurious" in q_lower:
+            filters["is_spurious"] = True
+        if "skipped" in q_lower or "skips" in q_lower:
+            filters["decision"] = "skipped"
+        if "created" in q_lower:
+            filters["decision"] = "created"
+    elif any(x in q_lower for x in ["run stats", "run statistics", "batch stats", "batch statistics", "runs stats", "run details"]):
+        source = "runs"
+    else:
+        source = "tasks"
+
+    # Intent detection
+    if any(x in q_lower for x in ["how many", "count", "number of", "total", "totals"]):
+        intent = "count"
+    elif any(x in q_lower for x in ["rate", "percentage", "ratio"]):
+        intent = "rate"
+        source = "processing_records"
+    elif any(x in q_lower for x in ["aggregate", "sum", "value", "worth", "deal value", "budget"]):
+        intent = "aggregate"
+        aggregate_field = "deal_value_inr"
+        
     # Thread history detection
     if "updated" in q_lower or "thread" in q_lower:
         if "more than once" in q_lower or "multiple times" in q_lower:
             intent = "thread_history"
             source = "task_updates"
             
-    # Spurious rate / skips
-    elif "spurious" in q_lower or "skip" in q_lower:
-        source = "processing_records"
-        if "rate" in q_lower or "percentage" in q_lower or "ratio" in q_lower:
-            intent = "rate"
-        else:
-            intent = "count"
-            filters["is_spurious"] = True
-            
-    # Triage queries
-    elif "triage" in q_lower:
-        source = "tasks"
-        intent = "list"
-        filters["assignee_id"] = "u_triage"
-        
-    # Deal value aggregate
-    elif "deal value" in q_lower or "budget" in q_lower or "sum" in q_lower:
-        intent = "aggregate"
-        source = "tasks"
-        aggregate_field = "deal_value_inr"
-        if "marketing" in q_lower:
-            filters["category"] = "marketing"
-        elif "rfp" in q_lower or "enterprise" in q_lower:
-            filters["category"] = "enterprise_rfp"
-            
-    # Count vs List
-    elif any(x in q_lower for x in ["how many", "count", "number of"]):
-        intent = "count"
-        
-        # Determine source
-        if "marketing" in q_lower and "spam" in q_lower:
-            source = "processing_records"
-        elif "spam" in q_lower or "newsletter" in q_lower or "ooo" in q_lower or "out of office" in q_lower:
-            source = "processing_records"
-            filters["is_spurious"] = True
-        else:
-            source = "tasks"
-            
-        # Category/Assignee filters
-        if "marketing" in q_lower:
-            filters["category"] = "marketing"
-        elif "rfp" in q_lower or "proposal" in q_lower:
-            filters["category"] = "enterprise_rfp"
-        elif "alliance" in q_lower or "partner" in q_lower:
-            filters["category"] = "alliances"
-        elif "finance" in q_lower or "invoice" in q_lower:
-            filters["category"] = "finance"
-            
-    # List queries
-    else:
-        intent = "list"
-        source = "tasks"
-        
+    # Apply filters for specific fields if intent is list/count
+    if intent in ["list", "count", "aggregate"]:
         # Priority filters
         if "high" in q_lower:
             filters["priority"] = "high"
@@ -123,10 +96,20 @@ def parse_user_query_fallback(query: str) -> StructuredChatQuery:
         elif "triage" in q_lower:
             filters["assignee_id"] = "u_triage"
             
+        # Category filters
+        if "marketing" in q_lower:
+            filters["category"] = "marketing"
+        elif "rfp" in q_lower or "proposal" in q_lower:
+            filters["category"] = "enterprise_rfp"
+        elif "alliance" in q_lower or "partner" in q_lower:
+            filters["category"] = "alliances"
+        elif "finance" in q_lower or "invoice" in q_lower:
+            filters["category"] = "finance"
+
         # Add support for generic query search (unrecognized terms like 'kanhaiya')
-        matched_filter = "priority" in filters or "assignee_id" in filters or "category" in filters
-        if not matched_filter:
-            stop_words = ["list", "show", "tasks", "emails", "get", "find", "all", "me", "what", "how", "many", "count", "about", "the", "from", "for", "of", "to", "by", "in", "with", "on", "at", "a", "an", "any", "some", "task", "active", "status", "queries", "query", "details", "detail", "total", "totals", "number", "numbers", "sum", "aggregate"]
+        matched_filter = "priority" in filters or "assignee_id" in filters or "category" in filters or "decision" in filters or "is_spurious" in filters
+        if not matched_filter and source == "tasks":
+            stop_words = ["list", "show", "tasks", "emails", "get", "find", "all", "me", "what", "how", "many", "count", "about", "the", "from", "for", "of", "to", "by", "in", "with", "on", "at", "a", "an", "any", "some", "task", "active", "status", "queries", "query", "details", "detail", "total", "totals", "number", "numbers", "sum", "aggregate", "processed", "created", "updated", "skipped", "skips", "spurious", "rate", "runs", "run", "batch"]
             words = [w for w in q_lower.split() if w not in stop_words and len(w) > 2]
             if words:
                 filters["q"] = words[0]

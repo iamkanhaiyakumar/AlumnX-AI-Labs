@@ -118,7 +118,9 @@ def call_groq_fallback(prompt: str, response_schema: Optional[Type[BaseModel]] =
     kwargs = {}
     if response_schema:
         kwargs["response_format"] = {"type": "json_object"}
-        prompt += f"\nYour output must be a valid JSON object matching the required fields."
+        import json
+        schema_dict = pydantic_to_gemini_schema(response_schema)
+        prompt += f"\n\nCRITICAL: Your output MUST be a valid JSON object matching this schema definition:\n{json.dumps(schema_dict, indent=2)}\nEnsure all required fields are populated exactly as defined."
 
     chat_completion = client.chat.completions.create(
         messages=[
